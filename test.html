@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Stock App Test Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-container {
+            padding: 30px;
+            min-height: 400px;
+        }
+
+        .test-results {
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .test-results.success {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            border-left: 5px solid #27ae60;
+        }
+
+        .test-results.failure {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border-left: 5px solid #e74c3c;
+        }
+
+        .test-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat {
+            background: rgba(255,255,255,0.7);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat .label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .stat .value {
+            display: block;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat.success .value {
+            color: #27ae60;
+        }
+
+        .stat.failure .value {
+            color: #e74c3c;
+        }
+
+        .test-errors {
+            margin-top: 20px;
+        }
+
+        .test-errors h4 {
+            color: #e74c3c;
+            margin-bottom: 15px;
+        }
+
+        .test-errors ul {
+            list-style: none;
+        }
+
+        .test-errors li {
+            background: rgba(231, 76, 60, 0.1);
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .test-errors code {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .log-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            line-height: 1.5;
+        }
+
+        .log-output:empty {
+            display: none;
+        }
+
+        .test-info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .test-info h3 {
+            margin-bottom: 10px;
+        }
+
+        .test-info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .test-info li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .test-info li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #a8e6cf;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .test-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🧪 Test Runner</h1>
+            <p>Stock Takip Uygulaması - Otomatik Test Sistemi</p>
+        </header>
+
+        <div class="controls">
+            <div class="button-group">
+                <button id="runAllTests" class="btn-primary">🚀 Tüm Testleri Çalıştır</button>
+                <button id="runUnitTests" class="btn-success">🔧 Unit Testler</button>
+                <button id="runIntegrationTests" class="btn-warning">🔗 Integration Testler</button>
+                <button id="clearResults" class="btn-info">🗑️ Sonuçları Temizle</button>
+            </div>
+            
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="results-container">
+            <div class="test-info">
+                <h3>📋 Test Kapsamı</h3>
+                <ul>
+                    <li>Utils modülü - Türkçe karakter dönüşümü, stok validasyonu</li>
+                    <li>Storage modülü - LocalStorage işlemleri</li>
+                    <li>Integration testleri - Modüller arası etkileşim</li>
+                    <li>Performance testleri - Büyük veri setleri</li>
+                    <li>Error handling - Hata durumları</li>
+                </ul>
+            </div>
+
+            <div id="resultsDisplay">
+                <p>Test çalıştırmak için yukarıdaki butonları kullanın.</p>
+            </div>
+
+            <div id="logOutput" class="log-output"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { testRunner } from './js/test-runner.js';
+        
+        // Console'u logOutput'a yönlendir
+        const logOutput = document.getElementById('logOutput');
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        function logToDisplay(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = document.createElement('div');
+            logLine.style.color = type === 'error' ? '#ff6b6b' : '#e2e8f0';
+            logLine.textContent = `[${timestamp}] ${message}`;
+            logOutput.appendChild(logLine);
+            logOutput.scrollTop = logOutput.scrollHeight;
+            
+            // Orijinal console'a da yazdır
+            if (type === 'error') {
+                originalConsoleError(message);
+            } else {
+                originalConsoleLog(message);
+            }
+        }
+        
+        console.log = (message) => logToDisplay(message, 'log');
+        console.error = (message) => logToDisplay(message, 'error');
+
+        // Test dosyalarını yükle
+        async function loadTests() {
+            try {
+                await Promise.all([
+                    import('./tests/utils.test.js'),
+                    import('./tests/storage.test.js'),
+                    import('./tests/integration.test.js')
+                ]);
+                console.log('✅ Tüm test dosyaları yüklendi');
+                return true;
+            } catch (error) {
+                console.error('❌ Test dosyaları yüklenirken hata:', error.message);
+                return false;
+            }
+        }
+
+        // Progress bar güncelle
+        function updateProgress(percentage) {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            if (percentage > 0) {
+                progressBar.style.display = 'block';
+                progressFill.style.width = percentage + '%';
+            } else {
+                progressBar.style.display = 'none';
+            }
+        }
+
+        // Sonuçları göster
+        function displayResults(results) {
+            const resultsDisplay = document.getElementById('resultsDisplay');
+            resultsDisplay.innerHTML = testRunner.getHTMLResults();
+            updateProgress(0);
+        }
+
+        // Loading göster
+        function showLoading(message = 'Testler çalışıyor...') {
+            const resultsDisplay = document.getElementById('resultsDisplay');
+            resultsDisplay.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+            updateProgress(50);
+        }
+
+        // Buton event'leri
+        document.getElementById('runAllTests').addEventListener('click', async () => {
+            showLoading('Tüm testler çalıştırılıyor...');
+            logOutput.innerHTML = '';
+            
+            const loaded = await loadTests();
+            if (loaded) {
+                const results = await testRunner.runAll();
+                displayResults(results);
+            }
+        });
+
+        document.getElementById('runUnitTests').addEventListener('click', async () => {
+            showLoading('Unit testler çalıştırılıyor...');
+            logOutput.innerHTML = '';
+            
+            // Sadece utils ve storage testlerini çalıştır
+            const testsCopy = [...testRunner.tests];
+            testRunner.tests = testRunner.tests.filter(test => 
+                test.name.includes('Utils') || test.name.includes('Storage')
+            );
+            
+            const results = await testRunner.runAll();
+            displayResults(results);
+            
+            testRunner.tests = testsCopy; // Restore
+        });
+
+        document.getElementById('runIntegrationTests').addEventListener('click', async () => {
+            showLoading('Integration testler çalıştırılıyor...');
+            logOutput.innerHTML = '';
+            
+            // Sadece integration testlerini çalıştır
+            const testsCopy = [...testRunner.tests];
+            testRunner.tests = testRunner.tests.filter(test => 
+                test.name.includes('Integration')
+            );
+            
+            const results = await testRunner.runAll();
+            displayResults(results);
+            
+            testRunner.tests = testsCopy; // Restore
+        });
+
+        document.getElementById('clearResults').addEventListener('click', () => {
+            const resultsDisplay = document.getElementById('resultsDisplay');
+            resultsDisplay.innerHTML = '<p>Sonuçlar temizlendi. Test çalıştırmak için yukarıdaki butonları kullanın.</p>';
+            logOutput.innerHTML = '';
+            updateProgress(0);
+        });
+
+        // Sayfa yüklendiğinde
+        window.addEventListener('load', () => {
+            console.log('🎯 Test Runner hazır!');
+            console.log('📝 Testleri çalıştırmak için butonları kullanın');
+        });
+    </script>
+</body>
+</html> 
