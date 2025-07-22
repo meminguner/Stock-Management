@@ -37,6 +37,7 @@ header p {
     font-size: 1.1em;
 }
 
+
 .main-content {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -145,11 +146,40 @@ button[type="button"]:hover {
 .search-controls {
     display: flex;
     align-items: center;
+    margin-bottom: 15px;
 }
 
 #searchInput {
     flex: 1;
-    margin-right: 10px;
+}
+
+.file-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.upload-section {
+    flex: 1;
+}
+
+.upload-label {
+    display: inline-block;
+    background: linear-gradient(45deg, #9b59b6, #8e44ad);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-align: center;
+    min-width: 150px;
+}
+
+.upload-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
 }
 
 .table-container {
@@ -290,8 +320,14 @@ tr:hover {
         gap: 10px;
     }
     
-    #searchInput {
-        margin-right: 0;
+    .file-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .upload-label {
+        min-width: 100%;
+        text-align: center;
     }
 }
 
@@ -324,13 +360,14 @@ tr:hover {
     left: 0;
     right: 0;
     background: white;
-    border: 1px solid #ddd;
+    border: 2px solid #3498db;
     border-top: none;
     border-radius: 0 0 8px 8px;
-    max-height: 150px;
+    max-height: 200px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 10000;
     display: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .tag-suggestions.show {
@@ -338,14 +375,17 @@ tr:hover {
 }
 
 .tag-suggestion {
-    padding: 8px 12px;
+    padding: 10px 15px;
     cursor: pointer;
     border-bottom: 1px solid #f0f0f0;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    font-weight: 500;
 }
 
-.tag-suggestion:hover {
-    background-color: #f8f9fa;
+.tag-suggestion:hover,
+.tag-suggestion.highlighted {
+    background-color: #3498db;
+    color: white;
 }
 
 .tag-suggestion:last-child {
@@ -422,4 +462,32 @@ tr:hover {
     border-radius: 3px;
     font-size: 11px;
     cursor: pointer;
+}
+
+/* Drag and drop stilleri */
+.table-section {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.table-section.drag-over {
+    background: rgba(52, 152, 219, 0.1);
+    border: 2px dashed #3498db;
+    transform: scale(1.02);
+}
+
+.table-section.drag-over::before {
+    content: "📂 CSV dosyasını buraya bırakın";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(52, 152, 219, 0.9);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 1000;
+    pointer-events: none;
 } 

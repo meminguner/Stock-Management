@@ -11,6 +11,9 @@
         <header>
             <h1>🔧 Atölye Stok Takip Sistemi</h1>
             <p>Komponent ve malzeme yönetimi</p>
+            <div class="auto-save-info">
+                <small>📂 CSV yükleme aktif • 💾 Sekme kapatırken kaydetme uyarısı</small>
+            </div>
         </header>
 
         <div class="main-content">
@@ -48,11 +51,19 @@
                 </form>
             </div>
 
-            <!-- Arama ve Filtreler -->
+            <!-- Arama ve Dosya İşlemleri -->
             <div class="search-section">
-                <h2>Arama ve Filtreler</h2>
+                <h2>Arama ve Dosya İşlemleri</h2>
                 <div class="search-controls">
                     <input type="text" id="searchInput" placeholder="Ürün adı veya kodu ile ara..." autocomplete="off">
+                </div>
+                <div class="file-controls">
+                    <div class="upload-section">
+                        <label for="csvFileInput" class="upload-label">
+                            📂 CSV Yükle
+                        </label>
+                        <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                    </div>
                     <button id="exportBtn">📊 Excel'e Aktar</button>
                 </div>
             </div>

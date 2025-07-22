@@ -4,11 +4,21 @@ class StockManager {
         this.products = JSON.parse(localStorage.getItem('stockData')) || [];
         this.tags = JSON.parse(localStorage.getItem('stockTags')) || [];
         this.productCounter = parseInt(localStorage.getItem('productCounter')) || 1;
+        
+        // Sadece sekme kapatma uyarısı için
+        this.hasUnsavedChanges = false;
+        
+        // Keyboard navigation için
+        this.currentSuggestionIndex = -1;
+        this.currentEditSuggestionIndex = -1;
+        this.activeSuggestionContainer = null;
+        
         this.init();
     }
 
     init() {
         this.setupEventListeners();
+        this.setupBeforeUnloadWarning();
         this.renderTable();
     }
 
@@ -102,6 +112,7 @@ class StockManager {
         const clearBtn = document.getElementById('clearForm');
         const searchInput = document.getElementById('searchInput');
         const exportBtn = document.getElementById('exportBtn');
+        const csvFileInput = document.getElementById('csvFileInput');
 
         // Form submit
         form.addEventListener('submit', (e) => this.handleFormSubmit(e));
@@ -145,6 +156,31 @@ class StockManager {
         productTagInput.addEventListener('blur', (e) => {
             // Delay hiding to allow click on suggestions
             setTimeout(() => this.hideTagSuggestions(), 200);
+        });
+
+        // Tag input - keyboard navigation
+        productTagInput.addEventListener('keydown', (e) => {
+            const suggestionsContainer = document.getElementById('tagSuggestions');
+            const suggestions = suggestionsContainer.querySelectorAll('.tag-suggestion');
+            
+            if (suggestions.length > 0 && suggestionsContainer.classList.contains('show')) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.currentSuggestionIndex = Math.min(this.currentSuggestionIndex + 1, suggestions.length - 1);
+                    this.highlightSuggestion(suggestions, this.currentSuggestionIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.currentSuggestionIndex = Math.max(this.currentSuggestionIndex - 1, 0);
+                    this.highlightSuggestion(suggestions, this.currentSuggestionIndex);
+                } else if (e.key === 'Enter' && this.currentSuggestionIndex >= 0) {
+                    e.preventDefault();
+                    const selectedSuggestion = suggestions[this.currentSuggestionIndex];
+                    const tagText = selectedSuggestion.textContent;
+                    this.selectTag(tagText);
+                } else if (e.key === 'Escape') {
+                    this.hideTagSuggestions();
+                }
+            }
         });
 
         // Stok input - sadece rakam ve ? kabul et
@@ -204,6 +240,12 @@ class StockManager {
 
         // Export butonu
         exportBtn.addEventListener('click', () => this.exportToCSV());
+
+        // CSV upload
+        csvFileInput.addEventListener('change', (e) => this.handleCSVUpload(e));
+        
+        // Drag and drop desteği
+        this.setupDragAndDrop();
     }
 
     // Form submit işlemi
@@ -415,8 +457,9 @@ class StockManager {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         
+        const fileName = `stock_takip_${new Date().toISOString().split('T')[0]}.csv`;
         link.setAttribute('href', url);
-        link.setAttribute('download', `stock_takip_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', fileName);
         link.style.visibility = 'hidden';
         
         document.body.appendChild(link);
@@ -424,11 +467,15 @@ class StockManager {
         document.body.removeChild(link);
 
         this.showNotification('Veriler CSV dosyasına aktarıldı!');
+        this.hasUnsavedChanges = false; // Export edildiğinde unsaved changes'ı temizle
     }
 
     // Tag önerileri göster
     showTagSuggestions(value) {
         const suggestionsContainer = document.getElementById('tagSuggestions');
+        
+        // Index'i sıfırla
+        this.currentSuggestionIndex = -1;
         
         // Mevcut tag'ları parse et
         const currentTags = this.parseTags(value);
@@ -473,6 +520,7 @@ class StockManager {
     hideTagSuggestions() {
         const suggestionsContainer = document.getElementById('tagSuggestions');
         suggestionsContainer.classList.remove('show');
+        this.currentSuggestionIndex = -1;
     }
 
     // Tag seç
@@ -498,6 +546,9 @@ class StockManager {
     showEditTagSuggestions(id, value) {
         const suggestionsContainer = document.getElementById(`editTagSuggestions-${id}`);
         if (!suggestionsContainer) return;
+        
+        // Index'i sıfırla
+        this.currentEditSuggestionIndex = -1;
         
         // Mevcut tag'ları parse et
         const currentTags = this.parseTags(value);
@@ -543,6 +594,27 @@ class StockManager {
         const suggestionsContainer = document.getElementById(`editTagSuggestions-${id}`);
         if (suggestionsContainer) {
             suggestionsContainer.classList.remove('show');
+        }
+        this.currentEditSuggestionIndex = -1;
+    }
+
+    // Suggestion highlight sistemi
+    highlightSuggestion(suggestions, index) {
+        // Tüm highlight'ları temizle
+        suggestions.forEach(suggestion => {
+            suggestion.classList.remove('highlighted');
+        });
+
+        // Seçili olanı highlight et
+        if (index >= 0 && index < suggestions.length) {
+            const selectedSuggestion = suggestions[index];
+            selectedSuggestion.classList.add('highlighted');
+            
+            // Scroll edilebilir alanda görünür hale getir
+            selectedSuggestion.scrollIntoView({
+                block: 'nearest',
+                behavior: 'smooth'
+            });
         }
     }
 
@@ -676,10 +748,32 @@ class StockManager {
         });
 
         editTagInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                this.saveEdit(id);
-            } else if (e.key === 'Escape') {
-                this.cancelEdit();
+            const suggestionsContainer = document.getElementById(`editTagSuggestions-${id}`);
+            const suggestions = suggestionsContainer ? suggestionsContainer.querySelectorAll('.tag-suggestion') : [];
+            
+            if (suggestions.length > 0 && suggestionsContainer.classList.contains('show')) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.currentEditSuggestionIndex = Math.min(this.currentEditSuggestionIndex + 1, suggestions.length - 1);
+                    this.highlightSuggestion(suggestions, this.currentEditSuggestionIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.currentEditSuggestionIndex = Math.max(this.currentEditSuggestionIndex - 1, 0);
+                    this.highlightSuggestion(suggestions, this.currentEditSuggestionIndex);
+                } else if (e.key === 'Enter' && this.currentEditSuggestionIndex >= 0) {
+                    e.preventDefault();
+                    const selectedSuggestion = suggestions[this.currentEditSuggestionIndex];
+                    const tagText = selectedSuggestion.textContent;
+                    this.selectEditTag(id, tagText);
+                } else if (e.key === 'Escape') {
+                    this.hideEditTagSuggestions(id);
+                }
+            } else {
+                if (e.key === 'Enter') {
+                    this.saveEdit(id);
+                } else if (e.key === 'Escape') {
+                    this.cancelEdit();
+                }
             }
         });
 
@@ -758,11 +852,206 @@ class StockManager {
         });
     }
 
+    // Sekme kapatma uyarısını kur
+    setupBeforeUnloadWarning() {
+        // Sekme kapatılırken uyarı ver
+        window.addEventListener('beforeunload', (e) => {
+            if (this.hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'Kaydedilmemiş değişiklikleriniz var. Sayfayı kapatmak istediğinizden emin misiniz?';
+                return e.returnValue;
+            }
+        });
+    }
+
+    // Drag and drop sistemi
+    setupDragAndDrop() {
+        const dropZone = document.querySelector('.table-section');
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.toLowerCase().endsWith('.csv')) {
+                    this.handleCSVFile(file);
+                } else {
+                    this.showNotification('Lütfen sadece CSV dosyası sürükleyin!', 'error');
+                }
+            }
+        });
+    }
+
+    // CSV dosyası işleme (upload ve drag&drop için ortak)
+    handleCSVFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                this.parseCSVData(e.target.result);
+            } catch (error) {
+                this.showNotification('CSV dosyası okunurken hata oluştu!', 'error');
+                console.error('CSV parse error:', error);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    // Kaydedilmemiş değişiklikleri işaretle
+    markUnsavedChanges() {
+        this.hasUnsavedChanges = true;
+    }
+
+    // CSV dosyası upload işlemi
+    handleCSVUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            this.showNotification('Lütfen sadece CSV dosyası yükleyin!', 'error');
+            return;
+        }
+
+        this.handleCSVFile(file);
+        
+        // File input'u temizle (aynı dosyayı tekrar yükleyebilmek için)
+        event.target.value = '';
+    }
+
+    // CSV verilerini parse et
+    parseCSVData(csvContent) {
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+            this.showNotification('CSV dosyası geçersiz format!', 'error');
+            return;
+        }
+
+        // Header kontrolü
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        const expectedHeaders = ['ID', 'Ürün Adı', 'Ürün Kodu', 'Kategori', 'Stok'];
+        
+        const uploadedProducts = [];
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Veri satırlarını işle
+        for (let i = 1; i < lines.length; i++) {
+            try {
+                const values = this.parseCSVLine(lines[i]);
+                if (values.length >= 5) {
+                    const product = {
+                        id: values[0] || this.generateUniqueId(),
+                        name: this.normalizeText(values[1] || ''),
+                        partNumber: this.normalizeText(values[2] || ''),
+                        tags: this.parseTags(values[3] || ''),
+                        stock: this.validateStockInput(values[4] || '?')
+                    };
+
+                    // Geçerli ürün kontrolü
+                    if (product.name && product.partNumber) {
+                        uploadedProducts.push(product);
+                        successCount++;
+
+                        // Yeni tag'ları listeye ekle
+                        product.tags.forEach(tag => {
+                            if (!this.tags.includes(tag)) {
+                                this.tags.push(tag);
+                            }
+                        });
+                    } else {
+                        errorCount++;
+                    }
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
+                console.warn(`Satır ${i + 1} işlenirken hata:`, error);
+            }
+        }
+
+        // Verileri entegre et
+        this.integrationDialog(uploadedProducts, successCount, errorCount);
+    }
+
+    // CSV satırını parse et (virgül ve tırnak işareti desteği)
+    parseCSVLine(line) {
+        const values = [];
+        let currentValue = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                values.push(currentValue.trim());
+                currentValue = '';
+            } else {
+                currentValue += char;
+            }
+        }
+        
+        values.push(currentValue.trim());
+        return values;
+    }
+
+    // Veri entegrasyonu dialog
+    integrationDialog(uploadedProducts, successCount, errorCount) {
+        if (uploadedProducts.length === 0) {
+            this.showNotification('Yüklenebilir geçerli veri bulunamadı!', 'error');
+            return;
+        }
+
+        const message = `${successCount} ürün başarıyla yüklendi.${errorCount > 0 ? ` ${errorCount} satırda hata var.` : ''}\n\nMevcut verilerle nasıl birleştirmek istiyorsunuz?`;
+        
+        const choice = confirm(message + '\n\nTamam: Mevcut verilere ekle\nİptal: Mevcut verileri değiştir');
+        
+        if (choice) {
+            // Mevcut verilere ekle
+            this.addToExistingData(uploadedProducts);
+        } else {
+            // Mevcut verileri değiştir
+            this.replaceExistingData(uploadedProducts);
+        }
+    }
+
+    // Mevcut verilere ekleme
+    addToExistingData(uploadedProducts) {
+        const addedCount = uploadedProducts.length;
+        this.products = [...this.products, ...uploadedProducts];
+        this.saveToStorage();
+        this.renderTable();
+        this.showNotification(`${addedCount} ürün mevcut verilere eklendi!`, 'success');
+    }
+
+    // Mevcut verileri değiştirme
+    replaceExistingData(uploadedProducts) {
+        const replacedCount = uploadedProducts.length;
+        this.products = uploadedProducts;
+        this.saveToStorage();
+        this.renderTable();
+        this.showNotification(`${replacedCount} ürün ile veriler değiştirildi!`, 'success');
+    }
+
     // LocalStorage'a kaydet
     saveToStorage() {
         localStorage.setItem('stockData', JSON.stringify(this.products));
         localStorage.setItem('stockTags', JSON.stringify(this.tags));
         localStorage.setItem('productCounter', this.productCounter.toString());
+        this.markUnsavedChanges();
     }
 }
 
