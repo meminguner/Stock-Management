@@ -2,8 +2,10 @@
 class StockManager {
     constructor() {
         this.products = JSON.parse(localStorage.getItem('stockData')) || [];
-        this.tags = JSON.parse(localStorage.getItem('stockTags')) || [];
         this.productCounter = parseInt(localStorage.getItem('productCounter')) || 1;
+        
+        // Tag listesi artık localStorage'dan değil, mevcut verilerden oluşturulacak
+        this.tags = [];
         
         // Sadece sekme kapatma uyarısı için
         this.hasUnsavedChanges = false;
@@ -19,6 +21,17 @@ class StockManager {
     init() {
         this.setupEventListeners();
         this.setupBeforeUnloadWarning();
+        this.setupDragAndDrop();
+        
+        // Custom modal sistemi
+        this.setupModal();
+        
+        // Mevcut verilerden tag listesini oluştur
+        this.regenerateTagsFromProducts();
+        
+        // Eski localStorage tag verilerini temizle (migration)
+        this.cleanupOldTagStorage();
+        
         this.renderTable();
     }
 
@@ -268,12 +281,8 @@ class StockManager {
         const stock = this.validateStockInput(stockValue);
         const productTags = this.parseTags(productTag);
 
-        // Yeni tag'ları listeye ekle (eğer daha önce yoksa)
-        productTags.forEach(tag => {
-            if (!this.tags.includes(tag)) {
-                this.tags.push(tag);
-            }
-        });
+        // Yeni tag'ları listeye ekle
+        this.addNewTags(productTags);
 
         const product = {
             id: this.generateUniqueId(),
@@ -304,8 +313,9 @@ class StockManager {
         this.showConfirmModal(
             'Bu ürünü silmek istediğinizden emin misiniz?',
             product,
-            () => {
+                         () => {
                 this.products = this.products.filter(p => p.id !== id);
+                // Tag listesi korunur - silinmez!
                 this.saveToStorage();
                 this.renderTable();
                 this.showNotification('Ürün silindi!', 'warning');
@@ -823,12 +833,8 @@ class StockManager {
             delete product.tag;
             product.tags = newTags;
 
-            // Yeni tag'ları listeye ekle (eğer daha önce yoksa)
-            newTags.forEach(tag => {
-                if (!this.tags.includes(tag)) {
-                    this.tags.push(tag);
-                }
-            });
+            // Yeni tag'ları listeye ekle
+            this.addNewTags(newTags);
 
             this.saveToStorage();
             this.renderTable();
@@ -1056,11 +1062,7 @@ class StockManager {
                         successCount++;
 
                         // Yeni tag'ları listeye ekle
-                        product.tags.forEach(tag => {
-                            if (!this.tags.includes(tag)) {
-                                this.tags.push(tag);
-                            }
-                        });
+                        this.addNewTags(product.tags);
                     } else {
                         errorCount++;
                     }
@@ -1124,26 +1126,102 @@ class StockManager {
     addToExistingData(uploadedProducts) {
         const addedCount = uploadedProducts.length;
         this.products = [...this.products, ...uploadedProducts];
+        // Sadece yeni tag'ları ekle, mevcut tag'ları koru
+        uploadedProducts.forEach(product => {
+            if (Array.isArray(product.tags)) {
+                this.addNewTags(product.tags);
+            }
+        });
         this.saveToStorage();
         this.renderTable();
         this.showNotification(`${addedCount} ürün mevcut verilere eklendi!`, 'success');
     }
 
-    // Mevcut verileri değiştirme
+    // Mevcut verileri değiştirme  
     replaceExistingData(uploadedProducts) {
         const replacedCount = uploadedProducts.length;
+        
+        // Mevcut tag'ları koru, yeni gelenleri ekle
+        const currentTags = [...this.tags]; // Mevcut tag'ları yedekle
+        
         this.products = uploadedProducts;
+        this.tags = currentTags; // Eski tag'ları geri yükle
+        
+        // Sadece yeni tag'ları ekle
+        uploadedProducts.forEach(product => {
+            if (Array.isArray(product.tags)) {
+                this.addNewTags(product.tags);
+            }
+        });
+        
         this.saveToStorage();
         this.renderTable();
-        this.showNotification(`${replacedCount} ürün ile veriler değiştirildi!`, 'success');
+        this.showNotification(`${replacedCount} ürün ile veriler değiştirildi! (Tag'lar korundu)`, 'success');
     }
 
-    // LocalStorage'a kaydet
+    // Mevcut ürünlerden tag listesini yeniden oluştur
+    regenerateTagsFromProducts() {
+        const allTags = new Set();
+        
+        this.products.forEach(product => {
+            // Yeni format (tags array)
+            if (Array.isArray(product.tags)) {
+                product.tags.forEach(tag => {
+                    if (tag && tag.trim()) {
+                        allTags.add(tag.trim());
+                    }
+                });
+            }
+            // Eski format desteği (tag string)
+            else if (product.tag && typeof product.tag === 'string') {
+                const oldTags = this.parseTags(product.tag);
+                oldTags.forEach(tag => {
+                    if (tag && tag.trim()) {
+                        allTags.add(tag.trim());
+                    }
+                });
+                
+                // Eski formatı yeni formata çevir
+                product.tags = oldTags;
+                delete product.tag;
+            }
+        });
+        
+        // Tag listesini güncelle (alfabetik sıralama)
+        this.tags = Array.from(allTags).sort();
+        
+        console.log(`Toplam ${this.tags.length} unique tag bulundu:`, this.tags);
+    }
+
+    // Eski localStorage tag verilerini temizle
+    cleanupOldTagStorage() {
+        if (localStorage.getItem('stockTags')) {
+            localStorage.removeItem('stockTags');
+            console.log('Eski tag verileri localStorage\'dan temizlendi');
+        }
+    }
+
+    // Yeni tag ekle ve tag listesini güncelle
+    addNewTag(tag) {
+        if (tag && tag.trim() && !this.tags.includes(tag.trim())) {
+            this.tags.push(tag.trim());
+            this.tags.sort(); // Alfabetik sıralama koru
+        }
+    }
+
+    // Birden fazla tag ekle
+    addNewTags(tagArray) {
+        tagArray.forEach(tag => this.addNewTag(tag));
+    }
+
+    // LocalStorage'a kaydet (artık sadece products ve counter)
     saveToStorage() {
         localStorage.setItem('stockData', JSON.stringify(this.products));
-        localStorage.setItem('stockTags', JSON.stringify(this.tags));
         localStorage.setItem('productCounter', this.productCounter.toString());
         this.markUnsavedChanges();
+        
+        // Tag listesi sadece büyür, küçülmez!
+        // Yeniden oluşturma sadece init'te yapılır
     }
 }
 
