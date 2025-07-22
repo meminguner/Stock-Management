@@ -246,6 +246,9 @@ class StockManager {
         
         // Drag and drop desteği
         this.setupDragAndDrop();
+        
+        // Custom modal sistemi
+        this.setupModal();
     }
 
     // Form submit işlemi
@@ -295,12 +298,19 @@ class StockManager {
 
     // Ürün sil
     deleteProduct(id) {
-        if (confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
-            this.products = this.products.filter(p => p.id !== id);
-            this.saveToStorage();
-            this.renderTable();
-            this.showNotification('Ürün silindi!', 'warning');
-        }
+        const product = this.products.find(p => p.id === id);
+        if (!product) return;
+
+        this.showConfirmModal(
+            'Bu ürünü silmek istediğinizden emin misiniz?',
+            product,
+            () => {
+                this.products = this.products.filter(p => p.id !== id);
+                this.saveToStorage();
+                this.renderTable();
+                this.showNotification('Ürün silindi!', 'warning');
+            }
+        );
     }
 
     // Stok güncelle
@@ -906,6 +916,85 @@ class StockManager {
             }
         };
         reader.readAsText(file, 'UTF-8');
+    }
+
+    // Custom Modal Sistemi
+    setupModal() {
+        const modal = document.getElementById('confirmModal');
+        const cancelBtn = document.getElementById('confirmCancel');
+        const deleteBtn = document.getElementById('confirmDelete');
+
+        // İptal butonu
+        cancelBtn.addEventListener('click', () => {
+            this.hideConfirmModal();
+        });
+
+        // Modal dışına tıklama
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.hideConfirmModal();
+            }
+        });
+
+        // ESC tuşu
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                this.hideConfirmModal();
+            }
+        });
+    }
+
+    // Confirmation modal göster
+    showConfirmModal(message, product, onConfirm) {
+        const modal = document.getElementById('confirmModal');
+        const messageEl = document.getElementById('confirmMessage');
+        const productInfoEl = document.getElementById('productInfo');
+        const deleteBtn = document.getElementById('confirmDelete');
+
+        // Mesajı ayarla
+        messageEl.textContent = message;
+
+        // Ürün bilgilerini göster
+        const tags = product.tags ? this.tagsToString(product.tags) : (product.tag || '-');
+        productInfoEl.innerHTML = `
+            <div class="info-row">
+                <span class="info-label">Ürün Adı:</span>
+                <span class="info-value">${product.name}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Ürün Kodu:</span>
+                <span class="info-value">${product.partNumber}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Kategori:</span>
+                <span class="info-value">${tags}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Stok:</span>
+                <span class="info-value">${product.stock}</span>
+            </div>
+        `;
+
+        // Sil butonu event listener'ını temizle ve yenisini ekle
+        const newDeleteBtn = deleteBtn.cloneNode(true);
+        deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+        
+        newDeleteBtn.addEventListener('click', () => {
+            onConfirm();
+            this.hideConfirmModal();
+        });
+
+        // Modal'ı göster
+        modal.classList.add('show');
+        
+        // Focus yönetimi
+        newDeleteBtn.focus();
+    }
+
+    // Confirmation modal gizle
+    hideConfirmModal() {
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('show');
     }
 
     // Kaydedilmemiş değişiklikleri işaretle
