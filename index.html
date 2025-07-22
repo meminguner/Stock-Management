@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atölye Stok Takip Uygulaması</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Atölye Stok Takip Sistemi</h1>
+            <p>Komponent ve malzeme yönetimi</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Ürün Ekleme Formu -->
+            <div class="form-section">
+                <h2>Yeni Ürün Ekle</h2>
+                <form id="productForm">
+                    <div class="input-group">
+                        <label for="productName">Ürün Adı:</label>
+                        <input type="text" id="productName" required placeholder="Örn: Direnç" autocomplete="off">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="partNumber">Ürün Kodu:</label>
+                        <input type="text" id="partNumber" required placeholder="Örn: R-100K-1/4W" autocomplete="off">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="stock">Stok Miktarı:</label>
+                        <input type="text" id="stock" placeholder="Sayı girin veya ? bırakın" autocomplete="off">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="productTag">Kategori/Tag:</label>
+                        <div class="tag-input-container">
+                            <input type="text" id="productTag" placeholder="Örn: ELEKTRONIK RELAY (boşlukla ayırın)" autocomplete="off">
+                            <div id="tagSuggestions" class="tag-suggestions"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button type="submit">Ürün Ekle</button>
+                        <button type="button" id="clearForm">Temizle</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Arama ve Filtreler -->
+            <div class="search-section">
+                <h2>Arama ve Filtreler</h2>
+                <div class="search-controls">
+                    <input type="text" id="searchInput" placeholder="Ürün adı veya kodu ile ara..." autocomplete="off">
+                    <button id="exportBtn">📊 Excel'e Aktar</button>
+                </div>
+            </div>
+
+            <!-- Stok Tablosu -->
+            <div class="table-section">
+                <h2>Stok Listesi</h2>
+                <div class="table-container">
+                    <table id="stockTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ürün Adı</th>
+                                <th>Ürün Kodu</th>
+                                <th>Kategori</th>
+                                <th>Stok</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody">
+                            <!-- Dinamik içerik buraya gelecek -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
