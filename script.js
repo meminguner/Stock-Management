@@ -467,7 +467,10 @@ class StockManager {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         
-        const fileName = `stock_takip_${new Date().toISOString().split('T')[0]}.csv`;
+        const now = new Date();
+        const date = now.toISOString().split('T')[0]; // 2025-01-22
+        const time = now.toTimeString().slice(0, 5).replace(':', '-'); // 14-30
+        const fileName = `stock_takip_${date}_${time}.csv`;
         link.setAttribute('href', url);
         link.setAttribute('download', fileName);
         link.style.visibility = 'hidden';
